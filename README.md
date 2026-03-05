@@ -36,7 +36,7 @@ Memory-Distill 是一套面向 AI Native 开发的长期记忆管理系统。它
 - **`auto-memory-sync`**：
   在每个任务完成后执行。AI 会将有价值的纠错记录到 `.logs/`。
 - **`memory-consolidation`**：
-  **紧随同步执行**。AI 将 `.logs/` 中的零散碎片按[意图识别协议](./.frieren/skills/memory-distill/references/distillation-logic.md)进行蒸馏，更新 `.memory/` 中的权威规则库。
+  **紧随同步执行**。AI 将 `.logs/` 中的零散碎片按意图识别协议进行蒸馏，更新 `.memory/` 中的权威规则库。
 
 ## 记忆检索策略
 
@@ -47,14 +47,13 @@ Memory-Distill 是一套面向 AI Native 开发的长期记忆管理系统。它
 
 ```text
 .
-├── .frieren/
-│   ├── rules/                 # 核心规则配置 (Agent 强制执行)
+├── .kiro/
+│   ├── steering/              # 核心规则配置 (Kiro Steering 文件)
 │   │   └── memory-integration.md
-│   └── skills/                # 技能包存储路径
-│       └── memory-distill/    # 核心逻辑
-│           ├── SKILL.md
-│           ├── workflows/     # 同步与整理脚本
-│           └── references/    # 逻辑法典
+│   └── memory-distill/        # 技能包存储路径
+│       ├── SKILL.md           # 核心逻辑
+│       ├── workflows/         # 同步与整理脚本
+│       └── references/        # 逻辑法典
 └── .memory/                   # 长期记忆存储库 (自动生成)
 ```
 
@@ -76,8 +75,8 @@ Memory-Distill 是一套面向 AI Native 开发的长期记忆管理系统。它
 
 ## 如何安装
 
-1. 将 `.frieren/` 文件夹拷贝到你的项目根目录。
-2. 开启支持 Agent 规则的 AI 编程助手（如 Cursor/Antigravity），它将自动识别并应用 `.frieren/rules/` 中的指令。
+1. 将 `.kiro/` 文件夹拷贝到你的项目根目录。
+2. 使用 Kiro AI 编程助手，它将自动识别并应用 `.kiro/steering/` 中的 steering 规则。
 
 ## 未来升级：语义化搜索 (QMD)
 
@@ -88,4 +87,4 @@ Memory-Distill 是一套面向 AI Native 开发的长期记忆管理系统。它
 
 ---
 
-> 由 [Distillation Logic](./.frieren/skills/memory-distill/references/distillation-logic.md) 驱动的自我进化系统。
+> 由 Distillation Logic 驱动的自我进化系统。
