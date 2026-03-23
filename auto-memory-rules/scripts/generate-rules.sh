@@ -50,6 +50,7 @@ get_category_display_name() {
         convention) echo "编码规范" ;;
         quality) echo "代码质量" ;;
         workflow) echo "工作流程" ;;
+        general) echo "通用规则" ;;
         other) echo "其他" ;;
     esac
 }
@@ -143,6 +144,7 @@ generate_header() {
     cat << EOF
 # 记忆系统 - $category_display
 
+
 > 此文件自动生成，请勿手动编辑
 > 运行 \`bash scripts/generate-rules.sh $editor\` 重新生成
 
@@ -160,7 +162,7 @@ generate_multi_file_rules() {
     local use_frontmatter="$5"
     local frontmatter_type="$6"
     
-    local categories="api types component hook state pattern convention quality workflow other"
+    local categories="api types component hook state pattern convention quality workflow general other"
     
     for category_key in $categories; do
         local category_display=$(get_category_display_name "$category_key")
@@ -208,6 +210,7 @@ generate_multi_file_rules() {
     done
 }
 
+
 # 生成单文件规则
 generate_single_file_rules() {
     local editor="$1"
@@ -226,7 +229,7 @@ generate_single_file_rules() {
 
 EOF
     
-    local categories="api types component hook state pattern convention quality workflow other"
+    local categories="api types component hook state pattern convention quality workflow general other"
     
     for category_key in $categories; do
         local category_display=$(get_category_display_name "$category_key")
@@ -269,6 +272,7 @@ EOF
     
     echo "  ✅ $output_file"
 }
+
 
 # 主函数
 main() {
@@ -340,7 +344,7 @@ main() {
     echo "📋 统计信息:"
     
     # 统计各 category 的规则数量
-    local categories="api types component hook state pattern convention quality workflow other"
+    local categories="api types component hook state pattern convention quality workflow general other"
     for category_key in $categories; do
         local category_display=$(get_category_display_name "$category_key")
         local count

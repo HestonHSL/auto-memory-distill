@@ -37,11 +37,12 @@ get_category_name() {
         convention) echo "编码规范" ;;
         quality) echo "代码质量" ;;
         workflow) echo "工作流程" ;;
+        general) echo "通用规则" ;;
         *) echo "$1" ;;
     esac
 }
 
-CATEGORIES="api types component hook state pattern convention quality workflow"
+CATEGORIES="api types component hook state pattern convention quality workflow general"
 
 # ============================================
 # 第一部分：生成索引 (index.md)
@@ -121,7 +122,7 @@ temp_file=$(mktemp)
 
 for memory in "$MEMORY_DIR"/*.md; do
     if [ -f "$memory" ] && [ "$(basename "$memory")" != "index.md" ] && [ "$(basename "$memory")" != "CHECKLIST.md" ]; then
-        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|pattern|convention|quality|workflow)" "$memory"; then
+        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|pattern|convention|quality|workflow|general)" "$memory"; then
             uncategorized_count=$((uncategorized_count + 1))
             filename=$(basename "$memory")
             title=$(grep "^# " "$memory" | head -1 | sed 's/^# //')
@@ -130,6 +131,7 @@ for memory in "$MEMORY_DIR"/*.md; do
         fi
     fi
 done
+
 
 if [ "$uncategorized_count" -gt 0 ]; then
     echo "## 未分类" >> "$INDEX_FILE"
@@ -164,6 +166,7 @@ cat >> "$INDEX_FILE" << 'EOF'
 EOF
 
 echo "  ✅ 索引已生成: $INDEX_FILE"
+
 
 # ============================================
 # 第二部分：生成清单 (CHECKLIST.md)
@@ -254,13 +257,14 @@ for category_key in $CATEGORIES; do
     rm -f "$temp_file"
 done
 
+
 # 处理未分类的记忆
 echo "## 其他" >> "$CHECKLIST_FILE"
 echo "" >> "$CHECKLIST_FILE"
 
 for memory in "$MEMORY_DIR"/*.md; do
     if [ -f "$memory" ] && [ "$(basename "$memory")" != "index.md" ] && [ "$(basename "$memory")" != "CHECKLIST.md" ]; then
-        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|pattern|convention|quality|workflow)" "$memory"; then
+        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|pattern|convention|quality|workflow|general)" "$memory"; then
             title=$(grep "^# " "$memory" | head -1 | sed 's/^# //')
             priority=$(grep "^priority:" "$memory" | sed 's/^priority: *//')
             
