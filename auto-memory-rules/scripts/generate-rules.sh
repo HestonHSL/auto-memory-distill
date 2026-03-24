@@ -1,96 +1,37 @@
 #!/bin/bash
-# Auto-Memory-Rules 统一规则生成器
-# 根据编辑器类型生成对应格式的规则文件
+# Auto-Memory-Rules Frieren 多文件规则生成器
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 RULES_DIR="$SCRIPT_DIR/../memory"
 
-# 动态检测项目根目录
-# 如果在 .kiro/skills/、.frieren/skills/、.agents/skills/ 或 .agent/skills/ 下，往上3层
-# 否则往上2层
-if echo "$SCRIPT_DIR" | grep -q "/\.kiro/skills/\|/\.frieren/skills/\|/\.agents/skills/\|/\.agent/skills/"; then
-    PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# 在 .frieren/skills/auto-memory-rules/scripts 下运行时，项目根目录需回退四级
+if echo "$SCRIPT_DIR" | grep -q "/\.frieren/skills/"; then
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../" && pwd)"
 else
     PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 fi
 
-RULES_DIR="$SCRIPT_DIR/../memory"
+OUTPUT_DIR="$PROJECT_ROOT/.frieren/rules"
+CATEGORIES="api types component hook state testing security pattern convention quality workflow general other"
+CLASSIFIED_REGEX="api|types|component|hook|state|testing|security|pattern|convention|quality|workflow|general"
 
-# 加载编辑器配置
-source "$SCRIPT_DIR/editor-config.sh"
-
-# 显示使用说明
 show_usage() {
     cat << EOF
-使用方法: $0 [target-platform|auto|all]
+使用方法: $0
 
-支持的平台:
-  kiro         - Kiro
-  cursor       - Cursor
-  windsurf     - Windsurf
-  antigravity  - Antigravity
-  claude       - Claude Code（输出到 .claude/rules/）
-  frieren      - Frieren（兼容保留）
+说明:
+  本脚本仅生成 Frieren 多文件规则（输出到 .frieren/rules/）
 
 示例:
-  $0              # 自动探测并更新当前项目中的所有平台
-  $0 auto         # 自动探测并更新当前项目中的所有平台
-  $0 all          # 强制更新所有支持的平台
-  $0 kiro
-  $0 cursor
-  $0 windsurf
-  $0 antigravity
-  $0 claude
+  $0
 
 EOF
 }
 
-# 自动探测当前项目中已存在的平台痕迹
-detect_present_platforms() {
-    local detected=()
-
-    add_if_missing() {
-        local target="$1"
-        for existing in "${detected[@]}"; do
-            if [ "$existing" = "$target" ]; then
-                return
-            fi
-        done
-        detected+=("$target")
-    }
-
-    # Kiro
-    if [ -d "$PROJECT_ROOT/.kiro" ] || [ -d "$PROJECT_ROOT/.kiro/skills" ]; then
-        add_if_missing "kiro"
-    fi
-
-    # Cursor（workspace skills/rules）
-    if [ -d "$PROJECT_ROOT/.cursor" ] || [ -d "$PROJECT_ROOT/.cursor/skills" ] || [ -d "$PROJECT_ROOT/.cursor/rules" ] || [ -d "$PROJECT_ROOT/.agents/skills" ]; then
-        add_if_missing "cursor"
-    fi
-
-    # Windsurf（workspace skills: .windsurf/skills）
-    if [ -d "$PROJECT_ROOT/.windsurf" ] || [ -d "$PROJECT_ROOT/.windsurf/skills" ] || [ -f "$PROJECT_ROOT/.windsurfrules" ]; then
-        add_if_missing "windsurf"
-    fi
-
-    # Antigravity
-    if [ -d "$PROJECT_ROOT/.agents" ] || [ -d "$PROJECT_ROOT/.agents/skills" ] || [ -d "$PROJECT_ROOT/.agent" ] || [ -d "$PROJECT_ROOT/.agent/skills" ] || [ -f "$PROJECT_ROOT/AGENTS.md" ]; then
-        add_if_missing "antigravity"
-    fi
-
-    # Claude Code（workspace skills/rules）
-    if [ -d "$PROJECT_ROOT/.claude" ] || [ -d "$PROJECT_ROOT/.claude/skills" ] || [ -d "$PROJECT_ROOT/.claude/rules" ]; then
-        add_if_missing "claude"
-    fi
-
-    # Frieren（兼容）
+detect_frieren() {
     if [ -d "$PROJECT_ROOT/.frieren" ] || [ -d "$PROJECT_ROOT/.frieren/skills" ] || [ -d "$PROJECT_ROOT/.frieren/rules" ]; then
-        add_if_missing "frieren"
+        echo "frieren"
     fi
-
-    echo "${detected[*]}"
 }
 
 # 获取 category 显示名称
@@ -101,9 +42,6 @@ get_category_display_name() {
         component) echo "组件开发" ;;
         hook) echo "Hook 开发" ;;
         state) echo "状态管理" ;;
-        backend) echo "后端开发" ;;
-        database) echo "数据库设计" ;;
-        infra) echo "基础设施" ;;
         testing) echo "测试工程" ;;
         security) echo "安全规范" ;;
         pattern) echo "设计模式" ;;
@@ -113,6 +51,34 @@ get_category_display_name() {
         general) echo "通用规则" ;;
         other) echo "其他" ;;
     esac
+}
+
+get_frieren_frontmatter() {
+    local category_key="$1"
+    local scene_desc
+
+    case "$category_key" in
+        api) scene_desc="在定义 API 路由、调用接口、编写 API 文档时应用" ;;
+        types) scene_desc="在定义 TypeScript 类型、接口、泛型时应用" ;;
+        component) scene_desc="在开发 React 组件、设计组件 API 时应用" ;;
+        hook) scene_desc="在开发自定义 Hook、封装状态逻辑时应用" ;;
+        state) scene_desc="在设计状态管理、处理数据流时应用" ;;
+        testing) scene_desc="在编写单元测试、集成测试、端到端测试时应用" ;;
+        security) scene_desc="在实现认证鉴权、权限控制、输入校验与安全加固时应用" ;;
+        pattern) scene_desc="在进行架构设计、选择设计模式时应用" ;;
+        convention) scene_desc="在编写代码、命名变量、组织文件时应用" ;;
+        quality) scene_desc="在代码审查、重构优化时应用" ;;
+        workflow) scene_desc="在开发流程、调试排查、问题解决时应用" ;;
+        *) scene_desc="在相关场景中应用" ;;
+    esac
+
+    cat << EOF
+---
+agentRequested: true
+description: "$scene_desc"
+---
+
+EOF
 }
 
 # 提取规则的核心要素（去掉示例和冗余说明）
@@ -184,73 +150,47 @@ extract_rule_essentials() {
 
 # 生成文件头部
 generate_header() {
-    local editor="$1"
-    local category_display="$2"
-    local use_frontmatter="$3"
-    local frontmatter_type="$4"
-    local category_key="$5"
-    
-    if [ "$use_frontmatter" = "true" ]; then
-        case "$frontmatter_type" in
-            "kiro")
-                get_kiro_frontmatter "$category_key" "$category_display"
-                ;;
-            "frieren")
-                get_frieren_frontmatter "$category_key" "$category_display"
-                ;;
-        esac
-    fi
-    
+    local category_display="$1"
+    local category_key="$2"
+    get_frieren_frontmatter "$category_key"
+
     cat << EOF
 # 记忆系统 - $category_display
 
 
 > 此文件自动生成，请勿手动编辑
-> 运行 \`bash scripts/generate-rules.sh $editor\` 重新生成
+> 运行 \`bash scripts/generate-rules.sh\` 重新生成
 
 ---
 
 EOF
 }
 
-# 生成多文件规则
-generate_multi_file_rules() {
-    local editor="$1"
-    local output_dir="$2"
-    local file_prefix="$3"
-    local file_suffix="$4"
-    local use_frontmatter="$5"
-    local frontmatter_type="$6"
-    
-    local categories="api types component hook state backend database infra testing security pattern convention quality workflow general other"
-    
-    for category_key in $categories; do
+generate_rules() {
+    mkdir -p "$OUTPUT_DIR"
+
+    for category_key in $CATEGORIES; do
         local category_display=$(get_category_display_name "$category_key")
-        local output_file="$output_dir/${file_prefix}${category_key}${file_suffix}"
+        local output_file="$OUTPUT_DIR/${category_key}-rules.md"
         local temp_file=$(mktemp)
         local has_rules=false
-        
-        # 生成文件头部
-        generate_header "$editor" "$category_display" "$use_frontmatter" "$frontmatter_type" "$category_key" > "$temp_file"
-        
-        # 查找该 category 的规则
+
+        generate_header "$category_display" "$category_key" > "$temp_file"
+
         for rule in "$RULES_DIR"/*.md; do
-            # 跳过自动生成的文件
             local basename=$(basename "$rule")
             if [ "$basename" = "index.md" ] || [ "$basename" = "CHECKLIST.md" ]; then
                 continue
             fi
-            
+
             if [ -f "$rule" ]; then
                 if [ "$category_key" = "other" ]; then
-                    # 未分类或不在标准列表中
-                    if ! grep -q "^category:" "$rule" || ! grep -E "^category:.*(api|types|component|hook|state|backend|database|infra|testing|security|pattern|convention|quality|workflow|general)" "$rule"; then
+                    if ! grep -q "^category:" "$rule" || ! grep -E "^category:.*($CLASSIFIED_REGEX)" "$rule"; then
                         has_rules=true
                         extract_rule_essentials "$rule" >> "$temp_file"
                         echo -e "\n---\n" >> "$temp_file"
                     fi
                 else
-                    # 标准 category
                     if grep -q "^category:.*$category_key" "$rule"; then
                         has_rules=true
                         extract_rule_essentials "$rule" >> "$temp_file"
@@ -259,8 +199,7 @@ generate_multi_file_rules() {
                 fi
             fi
         done
-        
-        # 如果该 category 有规则，写入输出文件
+
         if [ "$has_rules" = true ]; then
             mv "$temp_file" "$output_file"
             echo "  ✅ $output_file"
@@ -271,157 +210,53 @@ generate_multi_file_rules() {
 }
 
 
-# 生成单文件规则
-generate_single_file_rules() {
-    local editor="$1"
-    local output_file="$2"
-    local use_frontmatter="$3"
-    local frontmatter_type="$4"
-    
-    # 生成文件头部
-    cat > "$output_file" << EOF
-# Auto-Memory-Rules
-
-> 此文件自动生成，请勿手动编辑
-> 运行 \`bash scripts/generate-rules.sh $editor\` 重新生成
-
----
-
-EOF
-    
-    local categories="api types component hook state backend database infra testing security pattern convention quality workflow general other"
-    
-    for category_key in $categories; do
-        local category_display=$(get_category_display_name "$category_key")
-        local has_rules=false
-        
-        # 查找该 category 的规则
-        for rule in "$RULES_DIR"/*.md; do
-            # 跳过自动生成的文件
-            local basename=$(basename "$rule")
-            if [ "$basename" = "index.md" ] || [ "$basename" = "CHECKLIST.md" ]; then
-                continue
-            fi
-            
-            if [ -f "$rule" ]; then
-                local match=false
-                
-                if [ "$category_key" = "other" ]; then
-                    if ! grep -q "^category:" "$rule" || ! grep -E "^category:.*(api|types|component|hook|state|backend|database|infra|testing|security|pattern|convention|quality|workflow|general)" "$rule"; then
-                        match=true
-                    fi
-                else
-                    if grep -q "^category:.*$category_key" "$rule"; then
-                        match=true
-                    fi
-                fi
-                
-                if [ "$match" = true ]; then
-                    if [ "$has_rules" = false ]; then
-                        echo "## $category_display" >> "$output_file"
-                        echo "" >> "$output_file"
-                        has_rules=true
-                    fi
-                    
-                    extract_rule_essentials "$rule" >> "$output_file"
-                    echo -e "\n---\n" >> "$output_file"
-                fi
-            fi
-        done
-    done
-    
-    echo "  ✅ $output_file"
-}
-
-
 # 主函数
 main() {
-    local mode="${1:-auto}"
-    local target_platforms=""
+    if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+        show_usage
+        exit 0
+    fi
 
-    case "$mode" in
-        "auto")
-            target_platforms="$(detect_present_platforms)"
-            if [ -z "$target_platforms" ]; then
-                echo "⚠️  未探测到平台痕迹（.cursor/.claude/.kiro/.agents/.windsurf 等）"
-                echo "请显式传入目标平台，或先初始化对应平台目录。"
-                echo ""
-                show_usage
-                exit 1
-            fi
-            ;;
-        "all")
-            target_platforms="$(list_supported_editors | tr '\n' ' ')"
-            ;;
-        *)
-            if ! list_supported_editors | grep -q "^$mode$"; then
-                echo "❌ 不支持的目标平台: $mode"
-                echo ""
-                show_usage
-                exit 1
-            fi
-            target_platforms="$mode"
-            ;;
-    esac
-    
+    if [ -n "$1" ]; then
+        echo "❌ 本脚本不接受参数: $1"
+        echo ""
+        show_usage
+        exit 1
+    fi
+
+    if [ -z "$(detect_frieren)" ]; then
+        echo "⚠️  未探测到平台痕迹（.frieren）"
+        echo "请先初始化对应平台目录。"
+        echo ""
+        show_usage
+        exit 1
+    fi
+
     echo "📖 读取规则文件..."
-    
-    # 检查 rules 目录是否存在
+
     if [ ! -d "$RULES_DIR" ]; then
         echo "⚠️  Rules 目录不存在: $RULES_DIR"
         exit 1
     fi
-    
-    # 统计规则数量
+
     rule_count=$(find "$RULES_DIR" -name "*.md" | wc -l | tr -d ' ')
     echo "✅ 找到 $rule_count 条规则"
-    
+
     if [ "$rule_count" -eq 0 ]; then
         echo "⚠️  没有规则需要生成"
         exit 0
     fi
-    
-    echo "🎯 目标平台: $target_platforms"
+
+    echo "🎯 目标平台: frieren"
+    echo ""
+    echo "📝 生成 frieren 多文件规则..."
+    generate_rules
+    echo ""
+    echo "✨ [frieren] 规则已生成到: $OUTPUT_DIR"
     echo ""
 
-    for editor in $target_platforms; do
-        # 获取平台配置
-        local config=$(get_editor_config "$editor")
-        if echo "$config" | grep -q "^error:"; then
-            echo "❌ $(echo "$config" | cut -d: -f2-)"
-            exit 1
-        fi
-
-        local output_dir=$(parse_config "$config" "output_dir")
-        local file_prefix=$(parse_config "$config" "file_prefix")
-        local file_suffix=$(parse_config "$config" "file_suffix")
-        local use_frontmatter=$(parse_config "$config" "use_frontmatter")
-        local frontmatter_type=$(parse_config "$config" "frontmatter_type")
-        local multi_file=$(parse_config "$config" "multi_file")
-
-        # 创建输出目录
-        local full_output_dir="$PROJECT_ROOT/$output_dir"
-        mkdir -p "$full_output_dir"
-
-        echo "📝 生成 $editor 规则文件..."
-
-        if [ "$multi_file" = "true" ]; then
-            # 多文件模式
-            generate_multi_file_rules "$editor" "$full_output_dir" "$file_prefix" "$file_suffix" "$use_frontmatter" "$frontmatter_type"
-        else
-            # 单文件模式
-            local output_file="$full_output_dir/$file_suffix"
-            generate_single_file_rules "$editor" "$output_file" "$use_frontmatter" "$frontmatter_type"
-        fi
-
-        echo "✨ [$editor] 规则已生成到: $full_output_dir"
-        echo ""
-    done
-
     echo "📋 统计信息:"
-    # 统计各 category 的规则数量
-    local categories="api types component hook state backend database infra testing security pattern convention quality workflow general other"
-    for category_key in $categories; do
+    for category_key in $CATEGORIES; do
         local category_display=$(get_category_display_name "$category_key")
         local count
 
@@ -433,7 +268,7 @@ main() {
                     continue
                 fi
                 if [ -f "$rule" ]; then
-                    if ! grep -q "^category:" "$rule" || ! grep -E "^category:.*(api|types|component|hook|state|backend|database|infra|testing|security|pattern|convention|quality|workflow|general)" "$rule"; then
+                    if ! grep -q "^category:" "$rule" || ! grep -E "^category:.*($CLASSIFIED_REGEX)" "$rule"; then
                         count=$((count + 1))
                     fi
                 fi

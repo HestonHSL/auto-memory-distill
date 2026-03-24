@@ -33,9 +33,6 @@ get_category_name() {
         component) echo "组件开发" ;;
         hook) echo "Hook 开发" ;;
         state) echo "状态管理" ;;
-        backend) echo "后端开发" ;;
-        database) echo "数据库设计" ;;
-        infra) echo "基础设施" ;;
         testing) echo "测试工程" ;;
         security) echo "安全规范" ;;
         pattern) echo "设计模式" ;;
@@ -47,7 +44,7 @@ get_category_name() {
     esac
 }
 
-CATEGORIES="api types component hook state backend database infra testing security pattern convention quality workflow general"
+CATEGORIES="api types component hook state testing security pattern convention quality workflow general"
 
 # ============================================
 # 第一部分：生成索引 (index.md)
@@ -127,7 +124,7 @@ temp_file=$(mktemp)
 
 for memory in "$MEMORY_DIR"/*.md; do
     if [ -f "$memory" ] && [ "$(basename "$memory")" != "index.md" ] && [ "$(basename "$memory")" != "CHECKLIST.md" ]; then
-        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|backend|database|infra|testing|security|pattern|convention|quality|workflow|general)" "$memory"; then
+        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|testing|security|pattern|convention|quality|workflow|general)" "$memory"; then
             uncategorized_count=$((uncategorized_count + 1))
             filename=$(basename "$memory")
             title=$(grep "^# " "$memory" | head -1 | sed 's/^# //')
@@ -269,7 +266,7 @@ echo "" >> "$CHECKLIST_FILE"
 
 for memory in "$MEMORY_DIR"/*.md; do
     if [ -f "$memory" ] && [ "$(basename "$memory")" != "index.md" ] && [ "$(basename "$memory")" != "CHECKLIST.md" ]; then
-        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|backend|database|infra|testing|security|pattern|convention|quality|workflow|general)" "$memory"; then
+        if ! grep -q "^category:" "$memory" || ! grep -E "^category:.*(api|types|component|hook|state|testing|security|pattern|convention|quality|workflow|general)" "$memory"; then
             title=$(grep "^# " "$memory" | head -1 | sed 's/^# //')
             priority=$(grep "^priority:" "$memory" | sed 's/^priority: *//')
             

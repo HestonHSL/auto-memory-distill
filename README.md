@@ -7,7 +7,7 @@ Auto-Memory-Rules 是一套面向 AI Native 开发的长期记忆管理系统。
 ## 解决的痛点
 
 - **遗忘曲线**：AI 在长对话或跨任务中极易忘记用户之前的纠错和偏好
-- **维护成本**：手动整理项目规范（如 `.cursor/rules/`、`.claude/rules/`）繁琐且难以随开发实时同步
+- **维护成本**：手动整理项目规范（如 `.frieren/rules/`）繁琐且难以随开发实时同步
 - **重复纠错**：同样的错误需要反复提醒，浪费时间和精力
 - **配置断层**：不同成员或不同环境下，AI 对特定项目的认知无法自动保持一致
 
@@ -43,37 +43,32 @@ Auto-Memory-Rules 是一套面向 AI Native 开发的长期记忆管理系统。
 
 ### 对话结束
 1. 统计本次记录的记忆数量
-2. 自动生成索引和自检清单（已安装 hook 则自动触发）
+2. 自动生成索引和自检清单（手动触发）
 3. 更新编辑器规则（可选）
 
 ## 项目亮点
 
 - **零干预进化**：无需用户手动维护，AI 在对话中自动捕获反馈并生成规则
 - **自我反思机制**：AI 不只记录"做什么"，更理解"为什么"，形成深层认知
-- **Hook 自动触发**：支持在 Claude Code 通过 PostToolUse hook 自动更新索引和清单
 - **冲突智能处理**：规则演进则覆盖，场景分支则合并，两种冲突情形均有对应策略
-- **多 Agent 输出**：支持 Kiro、Antigravity、Cursor、Windsurf（以及 Claude Code 的 hook 流程）
+- **统一输出**：仅保留 Frieren 规则输出
 - **自动增强**：通过生成脚本将记忆转化为编辑器规则，直接增强 AI 能力
 
 ## 目录结构
 
 ```text
 <your-project>/
-├── .{platform}/                         # 平台配置目录（kiro/antigravity/cursor/windsurf/claude 等）
-│   ├── steering/ 或 rules/              # 规则目录
+├── .frieren/                            # 平台配置目录（仅 frieren）
+│   ├── rules/                           # 规则目录
 │   │   ├── memory-integration.md        # 核心集成规则（脚本生成）
 │   │   └── {category}-rules.md          # 按分类生成的规则（脚本生成）
 │   └── skills/
 │       └── auto-memory-rules/           # 技能包核心
 │           ├── SKILL.md                 # 核心逻辑与规则模板
-│           ├── hooks/
-│           │   └── on-write.sh          # Hook 处理脚本（监听 memory/ 写入）
 │           ├── scripts/
-│           │   ├── setup-hooks.sh                 # 注册 Claude Code hook（可选，一次性）
 │           │   ├── generate-memory-artifacts.sh   # 生成索引和清单
 │           │   ├── generate-integration-rules.sh  # 生成集成规则
 │           │   ├── generate-rules.sh              # 生成分类规则
-│           │   └── editor-config.sh               # 编辑器配置
 │           ├── templates/
 │           │   └── memory-integration.md          # 集成规则模板
 │           └── memory/                  # 记忆存储库
@@ -93,9 +88,6 @@ Auto-Memory-Rules 是一套面向 AI Native 开发的长期记忆管理系统。
 - `component` - 组件开发
 - `hook` - Hook 开发
 - `state` - 状态管理
-- `backend` - 后端服务与分层设计
-- `database` - 数据库设计与数据访问
-- `infra` - 基础设施、部署与运维
 - `testing` - 测试策略与测试实现
 - `security` - 安全设计与风险防护
 - `pattern` - 设计模式
@@ -124,35 +116,25 @@ description: Hook 不应暴露内部 setter
 
 ### 安装
 
-根据官方文档，推荐安装目录如下（工作区级）：
+推荐安装目录（工作区级）：
 
-- Cursor: `.cursor/skills/auto-memory-rules/`（也支持 `.agents/skills/`）
-- Claude Code: `.claude/skills/auto-memory-rules/`
-- Kiro: `.kiro/skills/auto-memory-rules/`
-- Antigravity: `.agents/skills/auto-memory-rules/`
-- Windsurf: `.windsurf/skills/auto-memory-rules/`
+- Frieren: `.frieren/skills/auto-memory-rules/`
 
-示例（以 Cursor 为例）：
+示例：
 
 ```bash
-mkdir -p .cursor/skills
-cp -r auto-memory-rules .cursor/skills/
+mkdir -p .frieren/skills
+cp -r auto-memory-rules .frieren/skills/
 ```
 
 然后在 skill 目录中执行脚本：
 
 ```bash
-# 生成规则文件（按目标平台）
-bash .cursor/skills/auto-memory-rules/scripts/generate-rules.sh cursor
+# 生成规则文件（frieren）
+bash .frieren/skills/auto-memory-rules/scripts/generate-rules.sh
 ```
 
-说明：`generate-integration-rules.sh` 用于生成平台集成规则，当前支持 `kiro` / `antigravity` / `claude` / `cursor`（以及兼容保留的 `frieren`）。
-
-Claude Code 如需自动化索引更新，可额外安装 hook（可选）：
-
-```bash
-bash .claude/skills/auto-memory-rules/scripts/setup-hooks.sh
-```
+说明：`generate-integration-rules.sh` 仅生成 frieren 集成规则。
 
 ### 使用
 
@@ -165,27 +147,19 @@ AI 助手会自动识别并应用规则。在对话中：
 ### 生成规则文件
 
 ```bash
-# 生成索引和清单（已安装 hook 则自动触发，无需手动执行）
+# 生成索引和清单
 bash scripts/generate-memory-artifacts.sh
 
 # 生成目标平台规则（可选，更新规则时运行）
-bash scripts/generate-rules.sh            # 自动探测并更新当前项目中的所有平台
-bash scripts/generate-rules.sh all        # 强制更新全部支持平台
-bash scripts/generate-rules.sh {platform} # 只更新单个平台
-
-# 支持的目标: kiro, antigravity, cursor, windsurf, claude/claude-code
+bash scripts/generate-rules.sh            # 生成 frieren 多文件规则
 ```
 
 ### 查看生成的文件
 
 - `memory/index.md` - 按分类浏览所有记忆（自动生成）
 - `memory/CHECKLIST.md` - 代码审查自检清单（自动生成）
-- `.kiro/steering/{category}-rules.md` - Kiro 自动加载的分类规则（可选生成）
-- `.agents/rules/memory-integration.md` - Antigravity 集成规则（可选生成）
-- `.cursor/rules/{category}-rules.md` - Cursor 分类规则（可选生成）
-- `.claude/rules/{category}-rules.md` - Claude Code 分类规则（可选生成）
-- `.windsurfrules` - Windsurf 单文件规则（可选生成）
-- `AGENTS.md` - Antigravity/Cross-tool 统一规则文件（可选生成）
+- `.frieren/rules/memory-integration.md` - Frieren 集成规则（可选生成）
+- `.frieren/rules/{category}-rules.md` - Frieren 分类规则（可选生成）
 
 ## 触发信号
 

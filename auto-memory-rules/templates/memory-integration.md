@@ -37,12 +37,12 @@
 
 **立即行动**：
 - 创建记忆文件到 `{SKILLS_PATH}/auto-memory-rules/memory/YYYY-MM-DD-{category}-{brief}.md`
-- 使用 SKILL.md 中的标准模板和分类（api/types/component/hook/state/backend/database/infra/testing/security/pattern/convention/quality/workflow/general）
+- 使用 SKILL.md 中的标准模板和分类（api/types/component/hook/state/testing/security/pattern/convention/quality/workflow/general）
 - 告知用户："我已记录这条记忆，下次会自动应用"
 
 ### 3. 对话结束
 
-如果创建了新记忆，运行（已安装 hook 则自动触发，无需手动执行）：
+如果创建了新记忆，运行：
 ```bash
 bash {SKILLS_PATH}/auto-memory-rules/scripts/generate-memory-artifacts.sh
 ```
